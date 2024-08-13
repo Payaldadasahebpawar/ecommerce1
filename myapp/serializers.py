@@ -15,16 +15,6 @@ from django.core.validators import RegexValidator
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    
-    # mobile_number = serializers.CharField(
-    #     validators=[
-    #         RegexValidator(
-    #             regex=r'^\d{10}$',
-    #             message="Mobile number must be 10 digits long and contain only numbers.",
-    #             code='invalid_mobile_number'
-    #         )
-    #     ]
-    # )
        
     class Meta:
         model = CustomUser
@@ -138,12 +128,10 @@ class TokenSerializer(serializers.Serializer):
     refresh = serializers.CharField()
     access = serializers.CharField()
     
-
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.CharField()
     password = serializers.CharField()
-    
-       
+     
     class Meta:
         model = CustomUser
         fields = ['email','password']
@@ -166,13 +154,8 @@ class UserLoginSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Invalid username or password.")
         else:
             raise serializers.ValidationError("Must include both username and password.")
-        
-        
-    
-
 
 #User serializer
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser

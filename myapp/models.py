@@ -30,8 +30,12 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
     
-
-
+    def deactivate_user(self, user_id):
+        user = self.get(pk=user_id)
+        user.is_active = False
+        user.save()
+        return user
+    
 class CustomUser(AbstractUser):
     username=None
     mobile_number = models.CharField(max_length=10)
@@ -72,11 +76,12 @@ class CustomUser(AbstractUser):
             return True
         return False
     
-    def delete(self, *args, **kwargs):
-        with transaction.atomic():
-            # Delete related admin log entries
-            LogEntry.objects.filter(user_id=self.id).delete()
-            super().delete(*args, **kwargs)
+    
+    # def delete(self, *args, **kwargs):
+    #     with transaction.atomic():
+    #         # Delete related admin log entries
+    #         LogEntry.objects.filter(user_id=self.id).delete()
+    #         super().delete(*args, **kwargs)
             
             
 class CustomUserLogs(models.Model):

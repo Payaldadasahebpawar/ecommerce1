@@ -1,5 +1,6 @@
 from datetime import datetime
 import datetime
+from django_filters import rest_framework as filters
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -20,13 +21,14 @@ from .serializers import UserLoginSerializer,FPasswordSerilizer,UpdateProfileSer
 from .serializers import EmailUpdateSerializer,ChangePasswordSerializer,RegisterSerializer
 from .utils import generate_otp, send_otp_email
 from django.contrib.auth.models import User
-
-
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+  
 class CustomPagination(PageNumberPagination):
     page_size = 5  # Define page size
     page_size_query_param = 'page_size'
     max_page_size = 100
-
+     
 User = get_user_model()
 
 class RegisterView(APIView):
@@ -41,58 +43,6 @@ class RegisterView(APIView):
              user = serializer.save()
              return Response(data={'message': 'User created Successfully.','status':'Success',"code": 201,"content_type":"null","error": {},'data': serializer.data,}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-User = get_user_model()
-
-# class UserLoginView(generics.CreateAPIView):
-#     serializer_class = UserLoginSerializer
-#     permission_classes=[]
-
-#     def post(self, request, *args, **kwargs):
-#         email = request.data.get('email')
-#         password = request.data.get('password')   
-#         user = authenticate(request, email=email, password=password)
-#         if user is not None:
-#             refresh = RefreshToken.for_user(user)
-#             return Response({
-#                 'status': True,
-#                 'code': 200,
-#                 'message': 'Login successful',
-#                 'access': str(refresh.access_token),
-#                 'refresh': str(refresh),
-#             }, status=status.HTTP_200_OK)
-#         else:
-#             return Response({
-#                 'status': False,
-#                 'code': 401,
-#                 'message': 'Invalid email or password',
-#             }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        
-        
-        
-        # serializer = self.serializer_class(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # user = serializer.validated_data['user']
-
-        # # Generate JWT tokens
-        # refresh = RefreshToken.for_user(user)
-        # access_token = refresh.access_token
-
-        # return Response({
-        #     'refresh': str(refresh),
-        #     'access': str(access_token),
-        # }, status=status.HTTP_200_OK)
-
-# class ProtectedView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         return Response({
-#             'message': 'This is a protected view'
-#         })
-
 
 class UserLoginView(APIView):
     serializer_class = UserLoginSerializer
@@ -110,41 +60,6 @@ class UserLoginView(APIView):
         })
         token_serializer.is_valid()
         return Response(token_serializer.data, status=status.HTTP_200_OK)
-
-
-
-
-
-
-# class LoginView(APIView):
-#     serializer_class = LoginSerializer
-#     permission_classes = []
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.validated_data['user']
-
-#         refresh = RefreshToken.for_user(user)
-#         return Response({
-#             'refresh': str(refresh),
-#             'access': str(refresh.access_token),
-#         }, status=status.HTTP_200_OK)
-
-
-# class LoginView(generics.GenericAPIView):
-#     serializer_class = LoginSerializer
-#     permission_classes = []
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.get_serializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.validated_data
-#         refresh = RefreshToken.for_user(user)
-#         return Response({
-#             'refresh': str(refresh),
-#             'access': str(refresh.access_token),
-#         }, status=status.HTTP_200_OK)
 
 class ProfileView(generics.RetrieveAPIView):
     queryset = User.objects.all()
@@ -177,16 +92,18 @@ class ChangePasswordView(generics.UpdateAPIView):
             return Response({"detail": "Password has been changed successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-     
-   
+        
 class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination
+    filter_backends = [DjangoFilterBackend]
+    # filter_backends = [filters.SearchFilter]
+    filterset_fields = ['email','mobile_number','first_name','last_name','gender', 'is_active']   
+    # search_fields = ['email','mobile_number','first_name','last_name','gender', 'is_active']
     authentication_classes = []  # No authentication required
     permission_classes = []
-                  
-
+                      
 class GenerateOTP(APIView):
     permission_classes=[]
     def post(self, request):
@@ -197,12 +114,9 @@ class GenerateOTP(APIView):
         except CustomUser.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
         
-        # user.otp = self.emailotp
-        # user.save()
         print(emailotp)
         CustomUserLogs.objects.create(useremail=email,otp=emailotp)
         send_otp_email(email,emailotp)
-        # send_otp_phone(phone_number, otp)
 
         return Response({'message': 'OTP has been sent to your email.'}, status=status.HTTP_200_OK)
 
@@ -261,12 +175,26 @@ class UpdateProfileView(generics.UpdateAPIView):
             serializer.save()
             return Response(data={'data': serializer.data, 'message': 'data Updated Successfully.','status':'HTTP_200_OK'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        # snippet = self.get_object(pk)
+        snippet = CustomUser.objects.get(pk=pk)
+        snippet.is_active = False
+        snippet.save()
+        
+        return Response({ 'message': 'data Deleted Successfully.','status':'Success','code':'204'}, status=status.HTTP_204_NO_CONTENT)
 
-    def delete(self, request, pk, format=None):
-        snippet = self.get_object(pk)
-        serializer = RegisterSerializer(snippet)
-        snippet.delete()
-        return Response(data={'data':serializer.data,'message':'data deleted Successfully.','status':'Success'},status=status.HTTP_204_NO_CONTENT)
+        
+    
+    
+    
+    
+
+    # def delete(self, request, pk, format=None):
+    #     snippet = self.get_object(pk)
+    #     serializer = RegisterSerializer(snippet)
+    #     snippet.delete()
+    #     return Response(data={'data':serializer.data,'message':'data deleted Successfully.','status':'Success'},status=status.HTTP_204_NO_CONTENT)
 
 class GenerateEmailUpdateOTP(APIView):
     def post(self, request, *args, **kwargs):
