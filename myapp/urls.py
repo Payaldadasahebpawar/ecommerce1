@@ -1,13 +1,13 @@
 from django.urls import path
 from .views import RegisterView,UpdateProfileView,UpdateEmail,GenerateEmailUpdateOTP, UserLoginView, ProfileView,GenerateOTP, ChangePasswordView,UserListView,ForgotPassword
-from .views import LogoutAndBlacklistRefreshTokenForUserView
+from .views import LogoutAndBlacklist
 from rest_framework_simplejwt.views import TokenRefreshView
 
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
-    # path('login/', LoginView.as_view(), name='login'),
+    #path('login/', LoginView.as_view(), name='login'),
    
     path('get-all-users/', UserListView.as_view(), name='get-all-users'),
     path('profile/', ProfileView.as_view(), name='profile'),
@@ -22,7 +22,7 @@ urlpatterns = [
     path('update-email/', UpdateEmail.as_view(), name='update-email'),
     
     path('token-refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('token-blacklist/', LogoutAndBlacklistRefreshTokenForUserView.as_view(), name='token_blacklist'),
+    path('token-blacklist/', LogoutAndBlacklist.as_view(), name='token_blacklist'),
      
 ]
     

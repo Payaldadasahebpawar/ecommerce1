@@ -1,16 +1,16 @@
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+# from django.contrib.auth import authenticate
 from .models import CustomUser
-import re
+import uuid
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth.models import User
 from .models import CustomUser
 #Register Serializer
 
-from django.core.validators import RegexValidator
+# from django.core.validators import RegexValidator
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -82,48 +82,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         raise serializers.ValidationError({"password": "Password fields didn't match."})
  
 
-#Login serializer
-# User = get_user_model()
-
-# class UserLoginSerializer(serializers.Serializer):
-#     email = serializers.EmailField()
-#     password = serializers.CharField(write_only=True)
-
-
-#     def validate(self, data):
-#         email = data.get('email')
-#         password = data.get('password')
-        
-#         print(email,password)
-
-#         if email and password:
-#             # Authenticate the user
-#             user = authenticate(request=self.context.get('request'), email=email, password=password)
-#             if not user:
-#                 raise serializers.ValidationError("Invalid email or password.")
-#         else:
-#             raise serializers.ValidationError("Must include 'email' and 'password'.")
-        
-#         data['user'] = user
-#         return data
-
-# class UserLoginSerializer(serializers.Serializer):
-#     email = serializers.EmailField()
-#     password = serializers.CharField(write_only=True)
-#     def validate(self, validated_data):
-#         email=validated_data['email']
-#         password=validated_data['password']
-        
-#         print(email,password)
-        
-#         # user = authenticate(email=email,password=password)
-#         user = authenticate(request=self.context.get('request'), email=email, password=password)
-#         print(user)
-#         if user and user.is_active:
-#             return user
-#         raise serializers.ValidationError("Invalid credentials")
-
-
 class TokenSerializer(serializers.Serializer):
     refresh = serializers.CharField()
     access = serializers.CharField()
@@ -172,36 +130,36 @@ class EmailUpdateSerializer(serializers.Serializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name','mobile_number', 'profile_image', 'address']
+        fields = ['first_name', 'last_name','mobile_number', 'profile_image', 'address','gender']
 
     def validate_mobile_number(self, value):
-        """
-        Validate that the mobile number is exactly 10 digits.
-        """
+        
+        # Validate that the mobile number is exactly 10 digits.
+        
         if not value.isdigit() or len(value) != 10:
             raise serializers.ValidationError("The mobile number must be exactly 10 digits.")
         return value
 
     def validate_first_name(self, value):
-        """
-        Validate that the first name contains only characters.
-        """
+        
+        # Validate that the first name contains only characters.
+        
         if not value.isalpha():
             raise serializers.ValidationError("The first name must contain only alphabetic characters.")
         return value
 
     def validate_last_name(self, value):
-        """
-        Validate that the last name contains only characters.
-        """
+        
+        # Validate that the last name contains only characters.
+        
         if not value.isalpha():
             raise serializers.ValidationError("The last name must contain only alphabetic characters.")
         return value
 
     def update(self, instance, validated_data):
-        """
-        Update the user profile.
-        """
+        
+        # Update the user profile.
+        
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
         # instance.email = validated_data.get('email', instance.email)
@@ -219,7 +177,6 @@ class UpdateEmailSerializer(serializers.Serializer):
     new_email = serializers.EmailField()
 
 #verify OTP
-
 class VerifyOTPSerializer(serializers.Serializer):
     otp = serializers.IntegerField()
     new_email = serializers.EmailField()
@@ -234,6 +191,8 @@ class CustomUserSerializerUpdate(serializers.ModelSerializer):
 class FPasswordSerilizer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
+    # uuid = serializers.UUIDField()
+    uuid=serializers.UUIDField(default=uuid.uuid4,)
     new_password = serializers.CharField(required=True,max_length=10)
     Confirm_password = serializers.CharField(required=True)
     
@@ -250,7 +209,7 @@ class FPasswordSerilizer(serializers.Serializer):
         return value
     class Meta:
          model=CustomUser
-         fields=['otp','email','new_password','Confirm_password']
+         fields=['otp','email','new_password','Confirm_password','uuid']
                        
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True)

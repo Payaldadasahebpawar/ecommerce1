@@ -1,6 +1,7 @@
 from datetime import datetime
 import datetime
-from django_filters import rest_framework as filters
+import uuid
+# from django_filters import rest_framework as filters
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -10,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from random import randint
-from django.contrib.auth import authenticate
+# from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings
 from django.http import Http404
@@ -38,6 +39,7 @@ class RegisterView(APIView):
     
     def post(self, request, *args, **kwargs):
         print(request.data)  # Log the request data
+        
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
              user = serializer.save()
@@ -99,7 +101,7 @@ class UserListView(generics.ListAPIView):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend]
     # filter_backends = [filters.SearchFilter]
-    filterset_fields = ['email','mobile_number','first_name','last_name','gender', 'is_active']   
+    filterset_fields = ['id','email','mobile_number','first_name','last_name','gender', 'is_active']   
     # search_fields = ['email','mobile_number','first_name','last_name','gender', 'is_active']
     authentication_classes = []  # No authentication required
     permission_classes = []
@@ -108,23 +110,26 @@ class GenerateOTP(APIView):
     permission_classes=[]
     def post(self, request):
         emailotp = generate_otp(self)
+        otp_uuid= uuid.uuid4()
         email = request.data.get('email', '')
         try:
             user = CustomUser.objects.get(email=email) 
         except CustomUser.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
         
-        print(emailotp)
-        CustomUserLogs.objects.create(useremail=email,otp=emailotp)
+        # print(emailotp)
+        CustomUserLogs.objects.create(useremail=email,otp=emailotp,otp_uuid=otp_uuid)
         send_otp_email(email,emailotp)
 
-        return Response({'message': 'OTP has been sent to your email.'}, status=status.HTTP_200_OK)
+        return Response({'message': 'OTP has been sent to your email.','uuid':otp_uuid,'Status':'Success'},status=status.HTTP_200_OK)
 
 class ForgotPassword(APIView):
+    permission_classes=[]
     serilizer=FPasswordSerilizer
     def put(self, request):
         email = request.data.get('email', '')
         otp = request.data.get('otp', '')
+        uuid= request.data.get('uuid')
         new_password=request.data.get('new_password')
         Confirm_password=request.data.get('Confirm_password')
 
@@ -133,10 +138,14 @@ class ForgotPassword(APIView):
         except CustomUser.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
        
-        userlog = CustomUserLogs.objects.last()
-        print(otp,userlog.otp,type(otp),type(userlog))
-        if otp == userlog.otp and timezone.now() < userlog.password_changed_date + datetime.timedelta(minutes=5):
-        # if otp==userlog.otp and timezone.now()<userlog.password_changed_date+datetime.timedelta(seconds=45):
+        userlog = CustomUserLogs.objects.get(otp_uuid=uuid)
+    
+        print(otp,type(otp),userlog.otp,type(userlog.otp))
+        print(uuid,type(uuid),userlog.otp_uuid,type(userlog.otp_uuid))
+       
+        # if otp == userlog.otp  and uuid == str(userlog.otp_uuid):
+        
+        if otp == userlog.otp  and uuid == str(userlog.otp_uuid) and timezone.now() < userlog.password_changed_date + datetime.timedelta(minutes=5):
                 
             if new_password==Confirm_password:
                 user.set_password(new_password)
@@ -144,7 +153,7 @@ class ForgotPassword(APIView):
                 return Response({'sucessfuly changed':'corret otp'},status=status.HTTP_201_CREATED)
             return Response({'error':'password does not match'})
         else:
-            return Response({'error':'new_password and Confirm_password mismatch'})
+            return Response({'error':'new_password and Confirm_password mismatch or OTP is expire,or uuid missing'})
     
 class UpdateProfileView(generics.UpdateAPIView): 
     # pagination_class = StandardResultsSetPagination              
@@ -152,9 +161,9 @@ class UpdateProfileView(generics.UpdateAPIView):
     serializer_class = UpdateProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    """
-    Retrieve, update or delete a snippet instance.
-    """
+    
+    # Retrieve, update or delete a snippet instance.
+    
     def get_object(self, pk):
         try:
             return CustomUser.objects.get(pk=pk)
@@ -176,6 +185,18 @@ class UpdateProfileView(generics.UpdateAPIView):
             return Response(data={'data': serializer.data, 'message': 'data Updated Successfully.','status':'HTTP_200_OK'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    def patch(self, request, pk):
+        try:
+            user = CustomUser.objects.get(pk=pk)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     def delete(self,request,pk):
         # snippet = self.get_object(pk)
         snippet = CustomUser.objects.get(pk=pk)
@@ -183,13 +204,8 @@ class UpdateProfileView(generics.UpdateAPIView):
         snippet.save()
         
         return Response({ 'message': 'data Deleted Successfully.','status':'Success','code':'204'}, status=status.HTTP_204_NO_CONTENT)
-
-        
+  
     
-    
-    
-    
-
     # def delete(self, request, pk, format=None):
     #     snippet = self.get_object(pk)
     #     serializer = RegisterSerializer(snippet)
@@ -220,7 +236,7 @@ class UpdateEmail(APIView):
             return Response({"message": "Email updated successfully."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class LogoutAndBlacklistRefreshTokenForUserView(APIView):
+class LogoutAndBlacklist(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):

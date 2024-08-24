@@ -1,13 +1,13 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from django.contrib.auth.models import AbstractUser, Group, Permission
-from django.db import models, transaction
+import uuid
+from django.contrib.auth.models import  BaseUserManager
+from django.contrib.auth.models import AbstractUser, Group
+from django.db import models
 from datetime import timedelta
-from .utils import generate_otp
 from django.utils import timezone 
 import random
 from django.contrib.admin.models import LogEntry
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import  BaseUserManager
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -45,6 +45,11 @@ class CustomUser(AbstractUser):
     address = models.TextField()
     otp = models.CharField(max_length=10, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
+    # otp_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)  # UUID field
+
+    
+    
+
     
     objects = CustomUserManager()
     USERNAME_FIELD='email'
@@ -86,8 +91,9 @@ class CustomUser(AbstractUser):
             
 class CustomUserLogs(models.Model):
     useremail=models.EmailField(unique=False)
-    otp = models.CharField(max_length=6, null=True, blank=True)  # Add the otp field here=
-    password_changed_date=models.DateTimeField(auto_now_add=True)   
+    otp = models.CharField(max_length=500, null=True, blank=True)  # Add the otp field here=
+    password_changed_date=models.DateTimeField(auto_now_add=True)  
+    otp_uuid = models.UUIDField(default=uuid.uuid4, unique=True)
     
     def is_valid(self):
         # Optional: Add logic to check if OTP is still valid (e.g., 5 min expiration)

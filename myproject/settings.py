@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+from typing import Sequence
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,7 @@ SECRET_KEY = 'django-insecure-x)z&)^t6wiznhb00u07($2-l)d6e_^ryp!$vzy7-jw)q-!4h&_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]      #"192.168.1.8"
 
 
 # Application definition
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "corsheaders",
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -54,6 +56,20 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS: Sequence[str]
+
+CORS_ALLOWED_ORIGINS = [
+  
+    "https://example.com",
+    "https://sub.example.com",
+    "http://localhost:5173",
+    # "http://192.168.1.8000",
+    # "http://127.0.0.1:8000",
+    "http://127.0.0.1:9000",
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -74,9 +90,6 @@ TEMPLATES = [
         },
     },
 ]
-
-
-
 
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
@@ -108,7 +121,7 @@ from datetime import timedelta
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -120,8 +133,6 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
-
-
 
 
 AUTH_USER_MODEL = 'myapp.CustomUser'
